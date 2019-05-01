@@ -113,7 +113,7 @@ def new_centroid_algorithm(ProjectionFT, FieldOfView, window_width=8):
         final_centroid_coord = centroidCoord2
 
         if (iteration == 25):       ## break if we hit 25 iterations as chances are we are stuck in a loop between two centroid index values! 
-            print('Had to break loop!')
+            
             break
 
     #print('iteration = {}'.format(iteration)) ## extra information 
