@@ -33,6 +33,9 @@ sns.set_context('talk')
 # 
 # ### Data Analysis
 # For simplicity, only the isocentre positions will be analysed. (Off-isocentre positions require a proprietary unwarping algorithm.)
+# 
+# ### Localization Algorithms
+# Note that only one algorithm is run in the cells below; to change which algorithm runs, you should change the output path as well as the algorithm call.
 
 # In[5]:
 
@@ -72,7 +75,7 @@ coordinates_offiso = [[[11.763, 5.541, -148.145], [11.725, 5.564, -155.915]],  #
 Ground_Truth = [coordinates_iso, coordinates_offiso]
 
 
-# In[6]:
+# In[37]:
 
 
 for seq in sequences:
@@ -88,7 +91,7 @@ for seq in sequences:
                     fts = RTH.reconstructProjections(projComplex,xsize,ysize)
 
                     file_suffix = (file.split("/"))[-1]
-                    new_name = "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-" + (file_suffix.split("."))[0]
+                    new_name = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + (file_suffix.split("."))[0]
 
                     ## CentAlg1 : is the standard centroid algorithm with 
                     ##      window_scale 2.5 and cut off value at 0.5 
@@ -107,9 +110,10 @@ for seq in sequences:
                     lst_of_vals = [[],[],[]]
 
                     for index, element in enumerate(fts):
-                        centroidInd, centroidCoord = SM.custm_centroid(element, FOV, 2.0, Cutoff_value=0.5)     
-                                                   ##SM.new_centroid_algorithm(element, FOV, window_width=1)   
-                                                                        ## calculates coil position
+                        centroidInd, centroidCoord = SM.new_centroid_algorithm(element, FOV, window_width=1)
+                                                    #SM.custm_centroid(element, FOV, 2.0, Cutoff_value=0.5) 
+                                                       
+                                                                       ## calculates coil position
                                                                         ## using centroid algorithm
 
                         lst_of_vals[index%3].append(centroidCoord)                               
@@ -133,7 +137,7 @@ for seq in sequences:
                     p2 = []
                     p3 = []
                     Projections = [p0,p1,p2,p3]
-                    txt_file = open(experiment_path + "WarpedCoordinates/" + "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-" + coil_label + ".txt", 'w')
+                    txt_file = open(experiment_path + "WarpedCoordinates/" + "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + coil_label + ".txt", 'w')
 
                     ## CentAlg1 : is the standard centroid algorithm with 
                     ##      window_scale 2.5 and cut off value at 0.5 
@@ -173,8 +177,9 @@ for seq in sequences:
 
                             dither = np.argmax(np.array([peak0,peak1,peak2]))
 
-                            centroidInd, centroidCoord = SM.custm_centroid(fft[dither][index], FOVS[dither], 2.0, Cutoff_value=0.5)
-                                                       ##SM.new_centroid_algorithm(fft[dither][index], FOVS[dither], window_width=1)   
+                            centroidInd, centroidCoord = SM.new_centroid_algorithm(fft[dither][index], FOVS[dither], window_width=1)
+                                                        #SM.custm_centroid(fft[dither][index], FOVS[dither], 2.0, Cutoff_value=0.5)
+                                                        
                                                                             ## calculates coil position
                                                                             ## using centroid algorithm
 
@@ -195,9 +200,9 @@ print("Done Copying!")
 
 # #### Unwarping not performed
 # 
-# The coil coordinates which have been saved to the WarpedCoordinates folder could have potentially fallen victim to gradient warping and should be unwarped, however the unwarping code is not available outside of SRI. Only near-isocentre positions will be analysejd.
+# The coil coordinates which have been saved to the WarpedCoordinates folder could have potentially fallen victim to gradient warping and should be unwarped, however the unwarping code is not available outside of SRI. Only near-isocentre positions will be analysed.
 
-# In[8]:
+# In[35]:
 
 
 ## This bit of code copys the unwarped coordinates for each coil and places them in the correct folder so they can be easily
@@ -211,7 +216,7 @@ for seq in sequences:
                 path = experiment_path + seq + "/" + cath + "/" + 'SRI_Catheter_Tracking-' + pos + "/"
                 path_warped = experiment_path + "WarpedCoordinates/"
 
-                files = glob.glob(path_warped + "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-cathcoil*.txt")
+                files = glob.glob(path_warped + "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-cathcoil*.txt")
                                      
                 for file in files: 
                     name = (file.split("/"))[-1]
@@ -222,19 +227,21 @@ for seq in sequences:
                 path = experiment_path + seq + "/" + cath + "/" + 'fastHadamard_Tracking-' + pos + "/"
                 path_warped = experiment_path + "WarpedCoordinates/"
 
-                file1_name = "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC4.txt"
-                file2_name = "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC5.txt"
+                file1_name = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC4.txt"
+                file1_copy = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC4-warp.txt"
+                file2_name = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC5.txt"
+                file2_copy = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC5-warp.txt"
                 
 
-                copyfile(path_warped + file1_name, path + file1_name)
-                copyfile(path_warped + file2_name, path + file2_name)
+                copyfile(path_warped + file1_name, path + file1_copy)
+                copyfile(path_warped + file2_name, path + file2_copy)
                 counter += 2
 
 print("Done Copying!")
 print(counter)
 
 
-# In[11]:
+# In[36]:
 
 
 SRI_iso_error = [[], ## cath284
@@ -268,7 +275,7 @@ for SIndex, seq in enumerate(sequences):
             elif (seq == 'SRI'): 
                 path = experiment_path + seq + "/" + cath + "/" + 'SRI_Catheter_Tracking-' + pos + "/"
                 
-            files = glob.glob(path + "warpedcoordsCentAlg4*unwarped.txt")
+            files = glob.glob(path + "warpedcoordsCentAlg4*.txt")
             
             X_coord = []
             Y_coord = []
@@ -277,7 +284,7 @@ for SIndex, seq in enumerate(sequences):
             for file in files: 
 
                 
-                file_suffix1 = (((file.split("/"))[-1]).split("-"))[-3] ## cathcoil#      two different file name types 
+                file_suffix1 = (((file.split("/"))[-1]).split("-"))[-2] ## cathcoil#      two different file name types 
                 file_suffix2 = (((file.split("/"))[-1]).split("-"))[-2] ## cathHVC#      need to  be seperated to determine coil number! 
             
                 if((file_suffix2 == "cathHVC4") or (file_suffix1 == "cathcoil4")): 
@@ -344,7 +351,7 @@ plt.show()
 print('Done!')
 
 
-# In[10]:
+# In[34]:
 
 
 ## temp copy paste to graph multiple algorithms on same chart 
