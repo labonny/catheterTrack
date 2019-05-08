@@ -34,7 +34,7 @@ sns.set_context('talk')
 # ### Data Analysis
 # For simplicity, only the isocentre positions will be analysed. (Off-isocentre positions require a proprietary unwarping algorithm.)
 
-# In[3]:
+# In[5]:
 
 
 ## Path/Constant variables:
@@ -43,7 +43,7 @@ experiment_path = "trackTest-18Apr2019/"
 ## experiment_path = "/volumes/ircci-share/data/trackTest-18Apr2019/"
 
 catheters = ["cath284", "cath299", "cath285"]
-positions = ["iso", "offIso"]
+positions = ["iso"]
 sequences = ["fastHadamard", "SRI"]
 coil_label_patternSRI = ["cathcoil4", "cathcoil5"]
 coil_label_patternFH = ["cathHVC4", "cathHVC5"]
@@ -72,7 +72,7 @@ coordinates_offiso = [[[11.763, 5.541, -148.145], [11.725, 5.564, -155.915]],  #
 Ground_Truth = [coordinates_iso, coordinates_offiso]
 
 
-# In[4]:
+# In[6]:
 
 
 for seq in sequences:
@@ -193,22 +193,11 @@ for seq in sequences:
 print("Done Copying!")
 
 
-# #### Unwarp the warped coordinates with the Gradient unwarping algorithm (semi-manual)
+# #### Unwarping not performed
 # 
-# The coil coordinates which have been saved to the WarpedCoordinates folder could have potentially fallen victim to gradient warping and must be unwarped. 
-#     
-# To do this first open terminal: 
-#         - enter the command "ssh rtuser@raptor" 
-#         - when prompted for the password enter: "rufous"
-#         - copy the warped data into rtuser: "scp -r YourUserName@IPAddress:/path/to/WarpedCoordinates/ ~/path/to/save"
-#         - to run the unwarp function first change directories: "cd ~/Code/unwarpcoord/build/" 
-#         - then run the function: "./unwarpCoords ~/path/where/you/saved/WarpedCoordinates/ ../gw_coils.dat"
-#         - then copy the results back to your computer: "scp -r ~/path/where/you/saved/WarpedCoordinates/unwarped                                                                     YourUserName@IPAddress:/path/to/save/UnwarpedCoordinates" 
-#         - When prompted for password enter the password to login to your user on that computer
-# 
-# For additional help, speak with Bonny!
+# The coil coordinates which have been saved to the WarpedCoordinates folder could have potentially fallen victim to gradient warping and should be unwarped, however the unwarping code is not available outside of SRI. Only near-isocentre positions will be analysejd.
 
-# In[12]:
+# In[8]:
 
 
 ## This bit of code copys the unwarped coordinates for each coil and places them in the correct folder so they can be easily
@@ -220,9 +209,9 @@ for seq in sequences:
         for pos in positions: 
             if (seq == "SRI"): 
                 path = experiment_path + seq + "/" + cath + "/" + 'SRI_Catheter_Tracking-' + pos + "/"
-                path_unwarped = experiment_path + "UnwarpedCoordinates/"
+                path_warped = experiment_path + "WarpedCoordinates/"
 
-                files = glob.glob(path_unwarped + "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-cathcoil*-unwarped.txt")
+                files = glob.glob(path_warped + "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-cathcoil*.txt")
                                      
                 for file in files: 
                     name = (file.split("/"))[-1]
@@ -231,28 +220,24 @@ for seq in sequences:
             
             else:
                 path = experiment_path + seq + "/" + cath + "/" + 'fastHadamard_Tracking-' + pos + "/"
-                path_unwarped = experiment_path + "UnwarpedCoordinates/"
+                path_warped = experiment_path + "WarpedCoordinates/"
 
-                file1_name = "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC4-unwarped.txt"
-                file2_name = "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC5-unwarped.txt"
+                file1_name = "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC4.txt"
+                file2_name = "warpedcoordsCentAlg1-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC5.txt"
                 
 
-                copyfile(path_unwarped + file1_name, path + file1_name)
-                copyfile(path_unwarped + file2_name, path + file2_name)
+                copyfile(path_warped + file1_name, path + file1_name)
+                copyfile(path_warped + file2_name, path + file2_name)
                 counter += 2
 
 print("Done Copying!")
 print(counter)
 
 
-# In[8]:
+# In[11]:
 
 
 SRI_iso_error = [[], ## cath284
-                 [], ## cath299
-                 []] ## cath285
-
-SRI_off_error = [[], ## cath284
                  [], ## cath299
                  []] ## cath285
 
@@ -260,18 +245,10 @@ Fh_iso_error =  [[], ## cath284
                  [], ## cath299
                  []] ## cath285
 
-Fh_off_error =  [[], ## cath284
-                 [], ## cath299
-                 []] ## cath285
-
-Data_Array = [[Fh_iso_error, Fh_off_error], #FH 
-              [SRI_iso_error, SRI_off_error]] #SRI  
+Data_Array = [[Fh_iso_error], #FH 
+              [SRI_iso_error]] #SRI  
 
 SRI_iso =       [[], ## cath284
-                 [], ## cath299
-                 []] ## cath285
-
-SRI_off =       [[], ## cath284
                  [], ## cath299
                  []] ## cath285
 
@@ -279,12 +256,8 @@ Fh_iso =        [[], ## cath284
                  [], ## cath299
                  []] ## cath285
 
-Fh_off =        [[], ## cath284
-                 [], ## cath299
-                 []] ## cath285
-
-Data_Array2 = [[Fh_iso, Fh_off],  #FH 
-               [SRI_iso, SRI_off]]   # SRI
+Data_Array2 = [[Fh_iso],  #FH 
+               [SRI_iso]]   # SRI
 
 for SIndex, seq in enumerate(sequences): 
     for CIndex, cath in enumerate(catheters): 
@@ -354,9 +327,6 @@ for SIndex, seq in enumerate(sequences):
 Iso_error = [SRI_iso_error[0][0], SRI_iso_error[1][0], SRI_iso_error[2][0]] 
 Iso_std = [SRI_iso_error[0][1], SRI_iso_error[1][1], SRI_iso_error[2][1]]
 
-Off_error = [SRI_off_error[0][0], SRI_off_error[1][0], SRI_off_error[2][0]]
-Off_std = [SRI_off_error[0][1], SRI_off_error[1][1], SRI_off_error[2][1]]
-
 print(Iso_error)
 hori_axis = np.array([0.5, 1.5, 2.5])
 
@@ -365,7 +335,7 @@ plt.title("Absolute error in position of micro-coils for varying catheters")
 plt.ylabel("Absolute Error (mm)")
 plt.xlabel("Catheters")
 plt.errorbar(hori_axis, Iso_error, yerr = Iso_std, fmt = "--o", label = 'Isocenter')
-plt.errorbar(hori_axis, Off_error, yerr = Off_std, fmt = "--^", label = 'Off-isocenter')
+#plt.errorbar(hori_axis, Off_error, yerr = Off_std, fmt = "--^", label = 'Off-isocenter')
 plt.hlines(1.5, 0, 3, linestyles='dashed', label='Accuracy Requirement')
 plt.legend()
 plt.xticks(hori_axis, catheters)
@@ -374,7 +344,7 @@ plt.show()
 print('Done!')
 
 
-# In[3]:
+# In[10]:
 
 
 ## temp copy paste to graph multiple algorithms on same chart 
@@ -384,9 +354,6 @@ SRI_iso_PNG_std = [1.18, 1.47, 1.71]
 
 SRI_iso_FWHM_error = [1.21, 3.04, 2.66]          ## Cath284, Cath299, Cath285
 SRI_iso_FWHM_std = [1.31, 1.57, 0.79] 
-
-# print(np.mean(SRI_iso_PNG_error))
-# print(np.mean(SRI_iso_FWHM_error))
 
 hori_axis = np.array([1,2,3])
 
