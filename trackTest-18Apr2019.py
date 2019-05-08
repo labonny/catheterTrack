@@ -35,9 +35,9 @@ sns.set_context('talk')
 # For simplicity, only the isocentre positions will be analysed. (Off-isocentre positions require a proprietary unwarping algorithm.)
 # 
 # ### Localization Algorithms
-# Note that only one algorithm is run in the cells below; to change which algorithm runs, you should change the output path as well as the algorithm call.
+# Two custom algorithms from the Statistical Metrics module are run in the cells below.
 
-# In[5]:
+# In[40]:
 
 
 ## Path/Constant variables:
@@ -48,6 +48,8 @@ experiment_path = "trackTest-18Apr2019/"
 catheters = ["cath284", "cath299", "cath285"]
 positions = ["iso"]
 sequences = ["fastHadamard", "SRI"]
+algos = {"CentAlg1":SM.custm_centroid, "CentAlg4":SM.new_centroid_algorithm}
+alg_params = {"CentAlg1":{"CoilLength":2.0,"Cutoff_value":0.5}, "CentAlg4":{"window_width":1}}
 coil_label_patternSRI = ["cathcoil4", "cathcoil5"]
 coil_label_patternFH = ["cathHVC4", "cathHVC5"]
 projection_label_pattern = ["P0", "P1", "P2", "P3"]
@@ -75,7 +77,7 @@ coordinates_offiso = [[[11.763, 5.541, -148.145], [11.725, 5.564, -155.915]],  #
 Ground_Truth = [coordinates_iso, coordinates_offiso]
 
 
-# In[37]:
+# In[42]:
 
 
 for seq in sequences:
@@ -91,109 +93,117 @@ for seq in sequences:
                     fts = RTH.reconstructProjections(projComplex,xsize,ysize)
 
                     file_suffix = (file.split("/"))[-1]
-                    new_name = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + (file_suffix.split("."))[0]
+                    for alg in algos:
+                        new_name = "warpedcoords" + alg + '-' + seq + "-" + cath + "-" + pos + "-" + (file_suffix.split("."))[0]
 
-                    ## CentAlg1 : is the standard centroid algorithm with 
-                    ##      window_scale 2.5 and cut off value at 0.5 
+                        ## CentAlg1 : is the standard centroid algorithm with 
+                        ##      window_scale 2.5 and cut off value at 0.5 
 
-                    ## CentAlg2 : is the standard centroid algorithm with 
-                    ##      window_scale 2.5 and cut off value at 0 
+                        ## CentAlg2 : is the standard centroid algorithm with 
+                        ##      window_scale 2.5 and cut off value at 0 
 
-                    ## CentAlg3 : is the new centroid algorithm with 
-                    ##      peak normed gaussian and width is 8 mm
+                        ## CentAlg3 : is the new centroid algorithm with 
+                        ##      peak normed gaussian and width is 8 mm
 
-                    ## CentAlg4 : is the new centroid algorithm with 
-                    ##      peak normed gaussian and width is 1 mm
+                        ## CentAlg4 : is the new centroid algorithm with 
+                        ##      peak normed gaussian and width is 1 mm
 
-                    txt_file = open(experiment_path + "WarpedCoordinates/" + new_name + ".txt", 'w')
+                        txt_file = open(experiment_path + "WarpedCoordinates/" + new_name + ".txt", 'w')
 
-                    lst_of_vals = [[],[],[]]
+                        lst_of_vals = [[],[],[]]
 
-                    for index, element in enumerate(fts):
-                        centroidInd, centroidCoord = SM.new_centroid_algorithm(element, FOV, window_width=1)
-                                                    #SM.custm_centroid(element, FOV, 2.0, Cutoff_value=0.5) 
-                                                       
-                                                                       ## calculates coil position
-                                                                        ## using centroid algorithm
+                        for index, element in enumerate(fts):
+                            parms = alg_params[alg]
+                            parms["ProjectionFT"] = element
+                            parms["FieldOfView"] = FOV
+                            centroidInd, centroidCoord = algos[alg](**parms) 
+                                                        #SM.new_centroid_algorithm(element, FOV, window_width=1)
+                                                        #SM.custm_centroid(element, FOV, 2.0, Cutoff_value=0.5) 
 
-                        lst_of_vals[index%3].append(centroidCoord)                               
+                                                                           ## calculates coil position
+                                                                            ## using centroid algorithm
+
+                            lst_of_vals[index%3].append(centroidCoord)                               
 
 
-                    for i in range(min(len(lst_of_vals[0]),len(lst_of_vals[1]),len(lst_of_vals[2]))):
-                        txt_file.write("{} {} {} \n".format(lst_of_vals[0][i],lst_of_vals[1][i],lst_of_vals[2][i]))  
-                                                                              ## writes data to text file, 
-                                                                              ## first column = x-axis 
-                                                                              ## second column = y-axis
-                                                                              ## third column = z-axis                                                             
-                    txt_file.close()
+                        for i in range(min(len(lst_of_vals[0]),len(lst_of_vals[1]),len(lst_of_vals[2]))):
+                            txt_file.write("{} {} {} \n".format(lst_of_vals[0][i],lst_of_vals[1][i],lst_of_vals[2][i]))  
+                                                                                  ## writes data to text file, 
+                                                                                  ## first column = x-axis 
+                                                                                  ## second column = y-axis
+                                                                                  ## third column = z-axis                                                             
+                        txt_file.close()
 
             else:
                 path = experiment_path + seq + "/" + cath + "/" + 'fastHadamard_Tracking-' + pos + "/"
                 print(path)
+                for alg in algos:
+                    for coil_label in (coil_label_patternFH):
+                        p0 = []
+                        p1 = []
+                        p2 = []
+                        p3 = []
+                        Projections = [p0,p1,p2,p3]
+                        txt_file = open(experiment_path + "WarpedCoordinates/" + "warpedcoords" + alg + "-" + seq + "-" + cath + "-" + pos + "-" + coil_label + ".txt", 'w')
 
-                for coil_label in (coil_label_patternFH):
-                    p0 = []
-                    p1 = []
-                    p2 = []
-                    p3 = []
-                    Projections = [p0,p1,p2,p3]
-                    txt_file = open(experiment_path + "WarpedCoordinates/" + "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + coil_label + ".txt", 'w')
+                        ## CentAlg1 : is the standard centroid algorithm with 
+                        ##      window_scale 2.5 and cut off value at 0.5 
 
-                    ## CentAlg1 : is the standard centroid algorithm with 
-                    ##      window_scale 2.5 and cut off value at 0.5 
+                        ## CentAlg2 : is the standard centroid algorithm with 
+                        ##      window_scale 2.5 and cut off value at 0 
 
-                    ## CentAlg2 : is the standard centroid algorithm with 
-                    ##      window_scale 2.5 and cut off value at 0 
+                        ## CentAlg3 : is the new centroid algorithm with 
+                        ##      peak normed gaussian and width is 8 mm
 
-                    ## CentAlg3 : is the new centroid algorithm with 
-                    ##      peak normed gaussian and width is 8 mm
+                        ## CentAlg4 : is the new centroid algorithm with 
+                        ##      peak normed gaussian and width is 1 mm
 
-                    ## CentAlg4 : is the new centroid algorithm with 
-                    ##      peak normed gaussian and width is 1 mm
+                        for projection_number, projection_label in enumerate(projection_label_pattern): 
+                            fft = [[],[],[]]
+                            pNum = [0,0,0]
+                            FOVS = [0,0,0]
 
-                    for projection_number, projection_label in enumerate(projection_label_pattern): 
-                        fft = [[],[],[]]
-                        pNum = [0,0,0]
-                        FOVS = [0,0,0]
+                            for dither_number, dither_label in enumerate(dither_label_pattern): 
+                                file_name = (glob.glob(path + coil_label + projection_label + dither_label + "*.projections"))[0]
 
-                        for dither_number, dither_label in enumerate(dither_label_pattern): 
-                            file_name = (glob.glob(path + coil_label + projection_label + dither_label + "*.projections"))[0]
+                                xsize,ysize,zsize,FOV,projNum,triggerTimes,respPhases,timestamps,projComplex = RTH.readProjections(file_name)
+                                fts = RTH.reconstructProjections(projComplex,xsize,ysize)
 
-                            xsize,ysize,zsize,FOV,projNum,triggerTimes,respPhases,timestamps,projComplex = RTH.readProjections(file_name)
-                            fts = RTH.reconstructProjections(projComplex,xsize,ysize)
+                                fft[dither_number] = fts 
+                                pNum[dither_number] = projNum
+                                FOVS[dither_number] = FOV
 
-                            fft[dither_number] = fts 
-                            pNum[dither_number] = projNum
-                            FOVS[dither_number] = FOV
+                            for index in range(min(pNum)):
+                                mag0 = abs(fft[0][index])
+                                mag1 = abs(fft[1][index])
+                                mag2 = abs(fft[2][index])
 
-                        for index in range(min(pNum)):
-                            mag0 = abs(fft[0][index])
-                            mag1 = abs(fft[1][index])
-                            mag2 = abs(fft[2][index])
+                                peak0 = max(mag0) 
+                                peak1 = max(mag1)
+                                peak2 = max(mag2)
 
-                            peak0 = max(mag0) 
-                            peak1 = max(mag1)
-                            peak2 = max(mag2)
+                                dither = np.argmax(np.array([peak0,peak1,peak2]))
+                                parms = alg_params[alg]
+                                parms["ProjectionFT"] = fft[dither][index]
+                                parms["FieldOfView"] = FOVS[dither]
+                                centroidInd, centroidCoord = algos[alg](**parms) 
+                                #centroidInd, centroidCoord = SM.new_centroid_algorithm(fft[dither][index], FOVS[dither], window_width=1)
+                                                            #SM.custm_centroid(fft[dither][index], FOVS[dither], 2.0, Cutoff_value=0.5)
 
-                            dither = np.argmax(np.array([peak0,peak1,peak2]))
+                                                                                ## calculates coil position
+                                                                                ## using centroid algorithm
 
-                            centroidInd, centroidCoord = SM.new_centroid_algorithm(fft[dither][index], FOVS[dither], window_width=1)
-                                                        #SM.custm_centroid(fft[dither][index], FOVS[dither], 2.0, Cutoff_value=0.5)
-                                                        
-                                                                            ## calculates coil position
-                                                                            ## using centroid algorithm
-
-                            Projections[projection_number].append(centroidCoord)
-
-
-                    for i in range(min(len(p0), len(p1), len(p2), len(p3))):
-                        projection_array = np.array([[p0[i]], [p1[i]], [p2[i]], [p3[i]]])
-                        coords = np.dot(linearRecomb, projection_array)
-
-                        txt_file.write("{} {} {} \n".format(float(coords[0]),float(coords[1]),float(coords[2])))  
+                                Projections[projection_number].append(centroidCoord)
 
 
-                    txt_file.close()
+                        for i in range(min(len(p0), len(p1), len(p2), len(p3))):
+                            projection_array = np.array([[p0[i]], [p1[i]], [p2[i]], [p3[i]]])
+                            coords = np.dot(linearRecomb, projection_array)
+
+                            txt_file.write("{} {} {} \n".format(float(coords[0]),float(coords[1]),float(coords[2])))  
+
+
+                        txt_file.close()
 
 print("Done Copying!")
 
@@ -202,7 +212,7 @@ print("Done Copying!")
 # 
 # The coil coordinates which have been saved to the WarpedCoordinates folder could have potentially fallen victim to gradient warping and should be unwarped, however the unwarping code is not available outside of SRI. Only near-isocentre positions will be analysed.
 
-# In[35]:
+# In[43]:
 
 
 ## This bit of code copys the unwarped coordinates for each coil and places them in the correct folder so they can be easily
@@ -211,37 +221,38 @@ counter = 0
 
 for seq in sequences:
     for cath in catheters: 
-        for pos in positions: 
-            if (seq == "SRI"): 
-                path = experiment_path + seq + "/" + cath + "/" + 'SRI_Catheter_Tracking-' + pos + "/"
-                path_warped = experiment_path + "WarpedCoordinates/"
+        for pos in positions:
+            for alg in algos:
+                if (seq == "SRI"): 
+                    path = experiment_path + seq + "/" + cath + "/" + 'SRI_Catheter_Tracking-' + pos + "/"
+                    path_warped = experiment_path + "WarpedCoordinates/"
 
-                files = glob.glob(path_warped + "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-cathcoil*.txt")
-                                     
-                for file in files: 
-                    name = (file.split("/"))[-1]
-                    copyfile(file, path + name)     
-                    counter += 1
-            
-            else:
-                path = experiment_path + seq + "/" + cath + "/" + 'fastHadamard_Tracking-' + pos + "/"
-                path_warped = experiment_path + "WarpedCoordinates/"
+                    files = glob.glob(path_warped + "warpedcoords" + alg + "-" + seq + "-" + cath + "-" + pos + "-cathcoil*.txt")
 
-                file1_name = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC4.txt"
-                file1_copy = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC4-warp.txt"
-                file2_name = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC5.txt"
-                file2_copy = "warpedcoordsCentAlg4-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC5-warp.txt"
-                
+                    for file in files: 
+                        name = (file.split("/"))[-1]
+                        copyfile(file, path + name)     
+                        counter += 1
 
-                copyfile(path_warped + file1_name, path + file1_copy)
-                copyfile(path_warped + file2_name, path + file2_copy)
-                counter += 2
+                else:
+                    path = experiment_path + seq + "/" + cath + "/" + 'fastHadamard_Tracking-' + pos + "/"
+                    path_warped = experiment_path + "WarpedCoordinates/"
+
+                    file1_name = "warpedcoords" + alg + "-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC4.txt"
+                    file1_copy = "warpedcoords" + alg + "-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC4-warp.txt"
+                    file2_name = "warpedcoords" + alg + "-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC5.txt"
+                    file2_copy = "warpedcoords" + alg + "-" + seq + "-" + cath + "-" + pos + "-" + "cathHVC5-warp.txt"
+
+
+                    copyfile(path_warped + file1_name, path + file1_copy)
+                    copyfile(path_warped + file2_name, path + file2_copy)
+                    counter += 2
 
 print("Done Copying!")
 print(counter)
 
 
-# In[36]:
+# In[44]:
 
 
 SRI_iso_error = [[], ## cath284
