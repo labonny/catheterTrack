@@ -7,8 +7,7 @@ In this experiment three electrophysiology catheters from the same manufacturer 
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/labonny/catheterTrack/binder_requirements_txt)
 
-It may take a while before it starts. After it starts, it will run like a usual jupyter notebook. You can make modifications while running and save the change by downloding the notebook. You will aslo be able to download the generated files located at the /tmp/ folder.  
-
+It may take a while before it starts. After it starts, it will run like a usual jupyter notebook. You can make modifications while running and save the changes by downloding the notebook. You will also be able to download the generated files located at the /tmp/ folder.  
 
 
 
