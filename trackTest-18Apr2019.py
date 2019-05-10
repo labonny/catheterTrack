@@ -91,7 +91,7 @@ coordinates_offiso = [[[11.763, 5.541, -148.145], [11.725, 5.564, -155.915]],  #
 Ground_Truth = [coordinates_iso, coordinates_offiso]
 
 
-# In[62]:
+# In[69]:
 
 
 # Setup arrays to hold data
@@ -101,7 +101,7 @@ for alg in algos:
     coordinates_byAlgo.append([[],[],[]])
     algo_ind[alg] = alg_index
     alg_index += 1
-trig = []; resp = []; time = []; coils = []; position_arr = []; fovs = []; seqs = []
+trig = []; resp = []; time = []; coils = []; position_arr = []; fovs = []; seqs = []; caths = []
 
 
 for seq in sequences:
@@ -144,6 +144,7 @@ for seq in sequences:
                                 seqs.append(seq)
                                 position_arr.append(pos)
                                 fovs.append(FOV)
+                                caths.append(cath)
                             
                         for i in range(min(len(lst_of_vals[0]),len(lst_of_vals[1]),len(lst_of_vals[2]))):
                             txt_file.write("{} {} {} \n".format(lst_of_vals[0][i],lst_of_vals[1][i],lst_of_vals[2][i]))
@@ -225,24 +226,26 @@ for seq in sequences:
                                 seqs.append(seq)
                                 position_arr.append(pos)
                                 fovs.append(FOV)
+                                caths.append(cath)
                         txt_file.close()
                 
 
 print("Done Copying!")
 
 
-# In[66]:
+# In[70]:
 
 
 print("Sequence array len = " + str(len(seqs)))
 print("Position array len = " + str(len(position_arr)))
+print("Cath array len = " + str(len(caths)))
 
 
-# In[65]:
+# In[71]:
 
 
 # Pandify the warped coordinates and metadata
-warpedFrame = pd.DataFrame.from_dict({"Sequence":seqs, "Position": position_arr, "FOV":fovs, "Coil":coils})
+warpedFrame = pd.DataFrame.from_dict({"Sequence":seqs, "Position": position_arr, "FOV":fovs, "Cath":caths, "Coil":coils})
 print("Set up warped frame of length: " + str(len(warpedFrame)) )
 axes = {'X':0, 'Y':1, 'Z':2}
 for alg in algos:
@@ -254,7 +257,7 @@ for alg in algos:
 warpedFrame.describe()
 
 
-# In[68]:
+# In[72]:
 
 
 warpedFrame.tail()
