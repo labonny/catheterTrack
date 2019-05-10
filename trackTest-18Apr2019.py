@@ -36,8 +36,20 @@ sns.set_context('talk')
 # 
 # ### Localization Algorithms
 # Two custom algorithms from the Statistical Metrics module are run in the cells below.
+# 
+# #### CentAlg1: FWHM
+# Is the "Fixed Width Half Max" centroid algorithm with window_scale 2.5 and cut off value at 0.5 
+# 
+# #### CentAlg2: FWHM
+# This is the "Fixed Width Half Max" centroid algorithm with window_scale 2.5 and cut off value at 0 
+# 
+# #### CentAlg3: PNG
+# This is the "Peak-normed Gaussian" centroid algorithm with a peak-normed gaussian-weighted centroid and window width of 8 mm
+# 
+# #### CentAlg4: PNG
+# This is the "Peak-normed Gaussian" centroid algorithm with a peak-normed gaussian-weighted centroid and window width of 1 mm
 
-# In[40]:
+# In[18]:
 
 
 ## Path/Constant variables:
@@ -49,8 +61,10 @@ catheters = ["cath284", "cath299", "cath285"]
 positions = ["iso"]
 sequences = ["fastHadamard", "SRI"]
 algos = {"CentAlg1":SM.custm_centroid, "CentAlg4":SM.new_centroid_algorithm}
+algo_ind = {}
 alg_params = {"CentAlg1":{"CoilLength":2.0,"Cutoff_value":0.5}, "CentAlg4":{"window_width":1}}
 coil_label_patternSRI = ["cathcoil4", "cathcoil5"]
+coil_num_patt_SRI = ".*cathcoil([0-9]+)-"
 coil_label_patternFH = ["cathHVC4", "cathHVC5"]
 projection_label_pattern = ["P0", "P1", "P2", "P3"]
 dither_label_pattern = ["D0", "D1", "D2"]
@@ -77,7 +91,17 @@ coordinates_offiso = [[[11.763, 5.541, -148.145], [11.725, 5.564, -155.915]],  #
 Ground_Truth = [coordinates_iso, coordinates_offiso]
 
 
-# In[42]:
+# In[62]:
+
+
+# Setup arrays to hold data
+coordinates_byAlgo = []
+alg_index = 0
+for alg in algos:
+    coordinates_byAlgo.append([[],[],[]])
+    algo_ind[alg] = alg_index
+    alg_index += 1
+trig = []; resp = []; time = []; coils = []; position_arr = []; fovs = []; seqs = []
 
 
 for seq in sequences:
@@ -88,57 +112,51 @@ for seq in sequences:
                 print(path)
 
                 files = glob.glob(path+"cathcoil[4-5]*projections")
+                p = re.compile(coil_num_patt_SRI)
                 for file in files: 
                     xsize,ysize,zsize,FOV,projNum,triggerTimes,respPhases,timestamps,projComplex = RTH.readProjections(file)
                     fts = RTH.reconstructProjections(projComplex,xsize,ysize)
 
                     file_suffix = (file.split("/"))[-1]
                     for alg in algos:
-                        new_name = "warpedcoords" + alg + '-' + seq + "-" + cath + "-" + pos + "-" + (file_suffix.split("."))[0]
-
-                        ## CentAlg1 : is the standard centroid algorithm with 
-                        ##      window_scale 2.5 and cut off value at 0.5 
-
-                        ## CentAlg2 : is the standard centroid algorithm with 
-                        ##      window_scale 2.5 and cut off value at 0 
-
-                        ## CentAlg3 : is the new centroid algorithm with 
-                        ##      peak normed gaussian and width is 8 mm
-
-                        ## CentAlg4 : is the new centroid algorithm with 
-                        ##      peak normed gaussian and width is 1 mm
-
-                        txt_file = open(experiment_path + "WarpedCoordinates/" + new_name + ".txt", 'w')
-
                         lst_of_vals = [[],[],[]]
-
-                        for index, element in enumerate(fts):
+                        #for index, element in enumerate(fts):
+                        new_name = "warpedcoords" + alg + '-' + seq + "-" + cath + "-" + pos + "-" + (file_suffix.split("."))[0]
+                        txt_file = open(experiment_path + "WarpedCoordinates/" + new_name + ".txt", 'w')
+                        axes = 3
+                        for index in range(0,len(fts),axes):
                             parms = alg_params[alg]
-                            parms["ProjectionFT"] = element
-                            parms["FieldOfView"] = FOV
-                            centroidInd, centroidCoord = algos[alg](**parms) 
-                                                        #SM.new_centroid_algorithm(element, FOV, window_width=1)
-                                                        #SM.custm_centroid(element, FOV, 2.0, Cutoff_value=0.5) 
-
+                            coord = []
+                            for axis in range(0,axes):
+                                if index + axis >= len(fts):
+                                    break
+                                parms["ProjectionFT"] = fts[index + axis]
+                                parms["FieldOfView"] = FOV
+                            
+                                centroidInd, centroidCoord = algos[alg](**parms) 
                                                                            ## calculates coil position
                                                                             ## using centroid algorithm
-
-                            lst_of_vals[index%3].append(centroidCoord)                               
-
-
+                                coordinates_byAlgo[algo_ind[alg]][axis].append(centroidCoord)
+                                lst_of_vals[axis].append(centroidCoord)
+                            if algo_ind[alg] == 0:
+                                coil = int(p.match(file).group(1))
+                                coils.append(int(coil))
+                                seqs.append(seq)
+                                position_arr.append(pos)
+                                fovs.append(FOV)
+                            
                         for i in range(min(len(lst_of_vals[0]),len(lst_of_vals[1]),len(lst_of_vals[2]))):
-                            txt_file.write("{} {} {} \n".format(lst_of_vals[0][i],lst_of_vals[1][i],lst_of_vals[2][i]))  
-                                                                                  ## writes data to text file, 
-                                                                                  ## first column = x-axis 
+                            txt_file.write("{} {} {} \n".format(lst_of_vals[0][i],lst_of_vals[1][i],lst_of_vals[2][i]))
+                                                                                 ## writes data to text file
+                                                                                  ## first column = x-axis
                                                                                   ## second column = y-axis
-                                                                                  ## third column = z-axis                                                             
-                        txt_file.close()
+                        
 
             else:
                 path = experiment_path + seq + "/" + cath + "/" + 'fastHadamard_Tracking-' + pos + "/"
                 print(path)
-                for alg in algos:
-                    for coil_label in (coil_label_patternFH):
+                for coil_label in (coil_label_patternFH):
+                    for alg in algos:
                         p0 = []
                         p1 = []
                         p2 = []
@@ -186,9 +204,7 @@ for seq in sequences:
                                 parms = alg_params[alg]
                                 parms["ProjectionFT"] = fft[dither][index]
                                 parms["FieldOfView"] = FOVS[dither]
-                                centroidInd, centroidCoord = algos[alg](**parms) 
-                                #centroidInd, centroidCoord = SM.new_centroid_algorithm(fft[dither][index], FOVS[dither], window_width=1)
-                                                            #SM.custm_centroid(fft[dither][index], FOVS[dither], 2.0, Cutoff_value=0.5)
+                                centroidInd, centroidCoord = algos[alg](**parms)
 
                                                                                 ## calculates coil position
                                                                                 ## using centroid algorithm
@@ -200,12 +216,48 @@ for seq in sequences:
                             projection_array = np.array([[p0[i]], [p1[i]], [p2[i]], [p3[i]]])
                             coords = np.dot(linearRecomb, projection_array)
 
-                            txt_file.write("{} {} {} \n".format(float(coords[0]),float(coords[1]),float(coords[2])))  
-
-
+                            txt_file.write("{} {} {} \n".format(float(coords[0]),float(coords[1]),float(coords[2])))
+                            for axis in range(0,3):
+                                coordinates_byAlgo[algo_ind[alg]][axis].append(float(coords[axis]))
+                            if algo_ind[alg] == 0:
+                                coil = int(coil_label[-1])
+                                coils.append(int(coil))
+                                seqs.append(seq)
+                                position_arr.append(pos)
+                                fovs.append(FOV)
                         txt_file.close()
+                
 
 print("Done Copying!")
+
+
+# In[66]:
+
+
+print("Sequence array len = " + str(len(seqs)))
+print("Position array len = " + str(len(position_arr)))
+
+
+# In[65]:
+
+
+# Pandify the warped coordinates and metadata
+warpedFrame = pd.DataFrame.from_dict({"Sequence":seqs, "Position": position_arr, "FOV":fovs, "Coil":coils})
+print("Set up warped frame of length: " + str(len(warpedFrame)) )
+axes = {'X':0, 'Y':1, 'Z':2}
+for alg in algos:
+    for axis in axes:
+        colName = alg+"_"+axis
+        print("For algo " + alg + " axis: " + axis + ", #coords = " + str(len(coordinates_byAlgo[algo_ind[alg]][axes[axis]])))
+        warpedFrame[colName] = pd.Series(coordinates_byAlgo[algo_ind[alg]][axes[axis]],index=warpedFrame.index)
+
+warpedFrame.describe()
+
+
+# In[68]:
+
+
+warpedFrame.tail()
 
 
 # #### Unwarping not performed
