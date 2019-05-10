@@ -1,10 +1,5 @@
-struct
 scipy
-pylab
 matplotlib
-optparse
 numpy
 pandas
-re
-shutil
 seaborn
