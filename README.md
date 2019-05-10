@@ -1,13 +1,9 @@
 # catheterTrack
 
 Experiment Notes:
-In this experiment three electrophysiology catheters from the same manufacturer batch were placed in a fixture in a PAA phantom aligned along the main magnetic field. They were placed in two positions: near iso-centre, as well as at an off-isocentre position.
+In this experiment three electrophysiology catheters from the same manufacturer batch were placed in a fixture in a PAA phantom aligned along the main magnetic field. They were placed in two positions: near iso-centre, as well as at an off-isocentre position.The full MR protocol is described here: Data stored at ircci-share/Data/track • Full analysis done by Jay Soni
 
-The full MR protocol is described here
-
-Data stored at ircci-share/Data/track • Full analysis done by Jay Soni
-
-You may use the online tool Binder to run this notebook automatically:
+### You may use the tool Binder to run this notebook online without downloading:
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/labonny/catheterTrack/binder_requirements_txt)
 
